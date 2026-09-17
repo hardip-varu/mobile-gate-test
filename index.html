@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mobile Gate Test</title>
+<style>
+:root{
+  --bg:#f4f6fb; --card:#ffffff; --text:#0f172a; --muted:#64748b;
+  --ok:#16a34a; --bad:#dc2626; --accent:#2563eb; --border:#e2e8f0;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0b1220; --card:#111a2e; --text:#e7ecf5; --muted:#93a1b8;
+    --border:#22304d; --accent:#5b8cff;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0b1220; --card:#111a2e; --text:#e7ecf5; --muted:#93a1b8;
+  --border:#22304d; --accent:#5b8cff;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{
+  background:var(--bg); color:var(--text);
+  font-family:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  min-height:100vh; display:flex; align-items:flex-start; justify-content:center; padding:24px;
+}
+.wrap{width:100%; max-width:520px}
+.card{
+  background:var(--card); border:1px solid var(--border); border-radius:16px;
+  padding:26px; box-shadow:0 10px 30px rgba(2,8,23,.08); margin-bottom:16px;
+}
+.badge{display:inline-block;font-size:13px;font-weight:600;padding:4px 10px;border-radius:999px;margin-bottom:14px}
+.badge.block{background:rgba(220,38,38,.12);color:var(--bad)}
+.badge.ok{background:rgba(22,163,74,.14);color:var(--ok)}
+h1{font-size:22px;margin:6px 0 10px;line-height:1.25}
+p{color:var(--muted);line-height:1.55;margin:0 0 16px}
+.btn{display:inline-block;background:var(--accent);color:#fff;border:none;border-radius:10px;padding:12px 18px;font-size:15px;font-weight:600;cursor:pointer}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+input[type=file]{width:100%;padding:12px;border:1px dashed var(--border);border-radius:10px;background:transparent;color:var(--text);margin-bottom:14px}
+.hidden{display:none}
+.spinner{width:26px;height:26px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin 1s linear infinite;margin:4px 0 14px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.checks h2{font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin:0 0 12px}
+.row{display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:14px;padding:9px 0;border-bottom:1px solid var(--border)}
+.row:last-child{border-bottom:none}
+.row .k{color:var(--text)}
+.row .v{display:flex;align-items:center;gap:8px;font-weight:600;font-size:13px}
+.dot{width:9px;height:9px;border-radius:50%}
+.dot.ok{background:var(--ok)} .dot.bad{background:var(--bad)}
+.v.ok{color:var(--ok)} .v.bad{color:var(--bad)}
+.ua{margin-top:14px;font-size:12px;color:var(--muted);word-break:break-word}
+.step-eyebrow{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin:0 0 4px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- Gate failed: not enough mobile signals -->
+  <div id="gate-block" class="card hidden">
+    <span class="badge block">Blocked</span>
+    <h1>This process is available on mobile devices only</h1>
+    <p>The browser is not presenting as a mobile device. Resizing the window is not enough. It needs a mobile User Agent, touch, and a coarse pointer, the way a real phone browser reports. See the checks below for what is missing.</p>
+  </div>
+
+  <!-- Gate passed: onboarding flow -->
+  <div id="app" class="card hidden">
+    <span class="badge ok">Mobile verified</span>
+
+    <div id="step-start">
+      <p class="step-eyebrow">Step 1 of 3</p>
+      <h1>Start verification</h1>
+      <p>You are on a mobile browser, so the flow is available. Tap start to begin.</p>
+      <button id="start-btn" class="btn">Start</button>
+    </div>
+
+    <div id="step-upload" class="hidden">
+      <p class="step-eyebrow">Step 2 of 3</p>
+      <h1>Upload your document</h1>
+      <p>Choose an image to simulate the document upload.</p>
+      <input id="doc-upload" type="file" accept="image/*">
+      <button id="submit-doc" class="btn" disabled>Submit</button>
+    </div>
+
+    <div id="processing" class="hidden">
+      <p class="step-eyebrow">Please wait</p>
+      <div class="spinner"></div>
+      <h1>Processing your document</h1>
+      <p>Validating the upload.</p>
+    </div>
+
+    <div id="step-success" class="hidden">
+      <span class="badge ok">Done</span>
+      <h1>Verification complete</h1>
+      <p>The flow reached the success state. A test can assert on this screen.</p>
+      <button id="restart-btn" class="btn">Start over</button>
+    </div>
+  </div>
+
+  <!-- Diagnostics: always visible -->
+  <div class="card checks">
+    <h2>Mobile pre-checks</h2>
+    <div class="row"><span class="k">User Agent is mobile</span><span class="v" id="c-ua"></span></div>
+    <div class="row"><span class="k">Client Hints mobile</span><span class="v" id="c-uach"></span></div>
+    <div class="row"><span class="k">Touch support</span><span class="v" id="c-touch"></span></div>
+    <div class="row"><span class="k">Pointer coarse</span><span class="v" id="c-coarse"></span></div>
+    <div class="row"><span class="k">Hover none</span><span class="v" id="c-hover"></span></div>
+    <div class="row"><span class="k">Overall gate</span><span class="v" id="c-gate"></span></div>
+    <div class="ua" id="c-uastring"></div>
+  </div>
+
+</div>
+
+<script>
+(function(){
+  function set(id, pass, labelPass, labelFail){
+    var el = document.getElementById(id);
+    el.className = "v " + (pass ? "ok" : "bad");
+    el.innerHTML = '<span class="dot ' + (pass ? "ok" : "bad") + '"></span>' + (pass ? (labelPass||"Yes") : (labelFail||"No"));
+  }
+
+  var ua = navigator.userAgent || "";
+  var uaMobile = /Mobi|Android|iPhone|iPad|iPod|IEMobile|BlackBerry|Opera Mini/i.test(ua);
+  var uaData = navigator.userAgentData || null;
+  var uaChMobile = uaData ? !!uaData.mobile : false;
+  var uaChKnown = !!uaData;
+  var maxTouch = navigator.maxTouchPoints || 0;
+  var hasTouch = maxTouch > 0 || ("ontouchstart" in window);
+  var coarse = !!(window.matchMedia && window.matchMedia("(pointer: coarse)").matches);
+  var noHover = !!(window.matchMedia && window.matchMedia("(hover: none)").matches);
+
+  var uaSignal = uaMobile || uaChMobile;
+  var passed = uaSignal && hasTouch && coarse;
+
+  set("c-ua", uaMobile, "Yes", "No");
+  set("c-uach", uaChMobile, "Yes", uaChKnown ? "No" : "Not supported");
+  set("c-touch", hasTouch, "Yes (" + maxTouch + ")", "No");
+  set("c-coarse", coarse, "Yes", "No");
+  set("c-hover", noHover, "Yes", "No");
+  set("c-gate", passed, "PASS", "FAIL");
+  document.getElementById("c-uastring").textContent = ua;
+
+  if(passed){
+    document.getElementById("app").classList.remove("hidden");
+  } else {
+    document.getElementById("gate-block").classList.remove("hidden");
+  }
+
+  function show(id){ document.getElementById(id).classList.remove("hidden"); }
+  function hide(id){ document.getElementById(id).classList.add("hidden"); }
+
+  var startBtn = document.getElementById("start-btn");
+  if(startBtn){ startBtn.addEventListener("click", function(){ hide("step-start"); show("step-upload"); }); }
+
+  var upload = document.getElementById("doc-upload");
+  var submit = document.getElementById("submit-doc");
+  if(upload){ upload.addEventListener("change", function(){ submit.disabled = !(upload.files && upload.files.length); }); }
+
+  if(submit){
+    submit.addEventListener("click", function(){
+      hide("step-upload"); show("processing");
+      setTimeout(function(){ hide("processing"); show("step-success"); }, 1500);
+    });
+  }
+
+  var restart = document.getElementById("restart-btn");
+  if(restart){
+    restart.addEventListener("click", function(){
+      hide("step-success"); show("step-start");
+      submit.disabled = true; upload.value = "";
+    });
+  }
+})();
+</script>
+</body>
+</html>
